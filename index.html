@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>上传图片并提取颜色</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+    <input type="file" id="imageInput" accept="image/*" onchange="displayImage()">
+    <div>
+        <h2>上传的图片：</h2>
+        <img id="uploadedImage" style="max-width: 500px; max-height: 500px;">
+    </div>
+    <div>
+        <h2>颜色列表：</h2>
+        <ul id="colorList">
+            <li class="color-sample">
+                采样颜色:
+                <div class="color-box" id="sampleColorBox"></div>
+                <span id="sampleColorText"></span>
+            </li>
+            <li class="color-heading">比色色阶:</li>
+        </ul>
+    </div>
+    <div>
+        <button onclick="calculateDistance()">计算距离</button>
+        <p id="result"></p>
+    </div>
+
+    <style>
+        /* 样式适用于小屏幕 */
+        @media (max-width: 768px) {
+            /* 添加适当的样式调整 */
+        }
+
+        .color-sample {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .color-heading {
+            margin-top: 10px;
+        }
+
+        .color-item {
+            list-style-type: none;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+        }
+
+        .color-box {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border: 1px solid #000;
+        }
+    </style>
+
+    <script>
+        var sampleColor = null;
+        var colorCounter = 0;
+        var colorArray = [];
+
+        function displayImage() {
+            var imageInput = document.getElementById('imageInput');
+            var uploadedImage = document.getElementById('uploadedImage');
+            var sampleColorBox = document.getElementById('sampleColorBox');
+            var sampleColorText = document.getElementById('sampleColorText');
+            var colorList = document.getElementById('colorList');
+
+            // Clear only the sample color when a new image is uploaded
+            sampleColor = null;
+            sampleColorBox.style.backgroundColor = 'transparent';
+            sampleColorText.textContent = '';
+            colorArray = [];
+
+            var file = imageInput.files[0];
+            if (file) {
+                var reader = new FileReader();
+
+                reader.onload = function (e) {
+                    uploadedImage.src = e.target.result;
+                    uploadedImage.style.display = 'block';
+                };
+
+                reader.readAsDataURL(file);
+
+                uploadedImage.onclick = function (e) {
+                    if (sampleColor === null) {
+                        var canvas = document.createElement('canvas');
+                        var context = canvas.getContext('2d');
+                        canvas.width = uploadedImage.width;
+                        canvas.height = uploadedImage.height;
+                        context.drawImage(uploadedImage, 0, 0, uploadedImage.width, uploadedImage.height);
+
+                        var x = e.offsetX;
+                        var y = e.offsetY;
+                        var pixelData = context.getImageData(x, y, 1, 1).data;
+
+                        sampleColor = 'rgb(' + pixelData[0] + ', ' + pixelData[1] + ', ' + pixelData[2] + ')';
+                        sampleColorBox.style.backgroundColor = sampleColor;
+                        sampleColorText.textContent = sampleColor;
+                    } else {
+                        var canvas = document.createElement('canvas');
+                        var context = canvas.getContext('2d');
+                        canvas.width = uploadedImage.width;
+                        canvas.height = uploadedImage.height;
+                        context.drawImage(uploadedImage, 0, 0, uploadedImage.width, uploadedImage.height);
+
+                        var x = e.offsetX;
+                        var y = e.offsetY;
+                        var pixelData = context.getImageData(x, y, 1, 1).data;
+
+                        var color = 'rgb(' + pixelData[0] + ', ' + pixelData[1] + ', ' + pixelData[2] + ')';
+                        var colorItem = document.createElement('li');
+                        colorItem.className = 'color-item';
+                        colorItem.innerHTML = '<div class="color-box" style="background-color: ' + color + '"></div>' + colorCounter + ': ' + color;
+                        colorList.appendChild(colorItem);
+                        colorArray.push(color);
+                        colorCounter++;
+                    }
+                };
+            }
+        }
+
+        function calculateDistance() {
+            if (sampleColor === null || colorArray.length === 0) {
+                document.getElementById('result').textContent = '请先采样颜色并添加比色色阶。';
+                return;
+            }
+
+            var minDistance = Number.MAX_VALUE;
+            var closestColor = '';
+            var closestColorIndex = 0;
+
+            for (var i = 0; i < colorArray.length; i++) {
+                var color = colorArray[i];
+                var distance = colorDistance(sampleColor, color);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestColor = color;
+                    closestColorIndex = i;
+                }
+            }
+
+            document.getElementById('result').innerHTML = '采样颜色: <div class="color-box" style="background-color: ' + sampleColor + '"></div> ' + sampleColor +
+                ' 与最接近的颜色为: ' + '<div class="color-box" style="background-color: ' + closestColor + '"></div> ' + closestColorIndex + ': ' + closestColor;
+        }
+
+        function colorDistance(color1, color2) {
+            var c1 = hexToRgb(color1);
+            var c2 = hexToRgb(color2);
+            return Math.sqrt(
+                Math.pow(c1.r - c2.r, 2) +
+                Math.pow(c1.g - c2.g, 2) +
+                Math.pow(c1.b - c2.b, 2)
+            );
+        }
+
+        function hexToRgb(hex) {
+            var result = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/.exec(hex);
+            return {
+                r: parseInt(result[1]),
+                g: parseInt(result[2]),
+                b: parseInt(result[3])
+            };
+        }
+    </script>
+</body>
+
+</html>
